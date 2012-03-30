@@ -1,0 +1,8 @@
+.autotest
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/r_re_dis
+lib/r_re_dis.rb
+test/test_r_re_dis.rb
