@@ -7,73 +7,85 @@ end
 -- Load the config
 config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
 
-higher_key = KEYS[1]..'_'..config["steps"]
+timestamp = tonumber(ARGV[2])
 
-if ARGV[2] == nil then
-  timestamp = tonumber(redis.call("TIME"))
+-- If steps are defined for the native resolution, we will round the timestamp 
+if config["steps"] then
+  higher_key = KEYS[1]..'_'..config["steps"]
+  if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
+    timestamp = math.floor(timestamp - (timestamp % config["steps"]))
+  else
+    timestamp = math.floor(timestamp - (timestamp % config["steps"])) + config["steps"]
+  end
 else
-  timestamp = tonumber(ARGV[2])
-end
-if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
-  timestamp = math.floor(timestamp - (timestamp % config["steps"]))
-else
-  timestamp = math.floor(timestamp - (timestamp % config["steps"])) + config["steps"]
+  higher_key = KEYS[1]..'_free'
+  timestamp = math.floor(timestamp + 0.5)
 end
 
--- We may be updateing an old entry, which we want to delete first
+-- Get the amount of entries in this bucket
+count = redis.call("ZCARD", higher_key)
+
+-- We need to make sure that to old entries are not added to the bucked
+if count+1 == config["rows"] then
+  oldest = tonumber(redis.call("ZRANGE", higher_key, 0, 0, 'WITHSCORES')[2])
+  if timestamp < oldest then
+    -- We cannot add older entries 
+    return false
+  end
+end
+
+-- We may be updating an old entry, which we want to delete first
 redis.call("ZREMRANGEBYSCORE", higher_key, timestamp, timestamp)
 
 -- Add the new entry to the bucked
 redis.call("ZADD", higher_key, timestamp, ARGV[1])
 
--- Update the config with 
-config["next_epoch"] = timestamp
-
-
--- Get the amount of entries in this bucket
-count = redis.call("ZCARD", higher_key)
-
-if count > config["rows"] then 
-	-- We have too many entries in this bucket - remove the oldest
-  pop = redis.call("ZRANGE", higher_key, 0, 0)
-  redis.call("ZREM", higher_key, pop[1])
+if count+1 > config["rows"] then 
+  -- We have too many entries in this bucket - remove the oldest
+  redis.call("ZREMRANGEBYRANK", higher_key, 0, (count-config.rows))
 end
 
 if config["rra"] then
   higher = config
   for i, rra in ipairs(config["rra"]) do
-    --redis.log(redis.LOG_NOTICE, timestamp)
-    --redis.log(redis.LOG_NOTICE, higher_key)
-    --redis.log(redis.LOG_NOTICE, "rra start")
-
     -- Calculate the timestamp for the aggregation
     lower_start = timestamp - (timestamp % rra["steps"])
     
     -- Get all entries from the higher precision bucket
     data = redis.call("ZRANGEBYSCORE", higher_key, lower_start, lower_start+rra["steps"] )
     
-    --redis.log(redis.LOG_NOTICE, lower_start)
-    --redis.log(redis.LOG_NOTICE, cjson.encode(data))
-    
-    -- Only proceed if we have enough entries
-    if table.getn(data) > (rra["steps"]/higher["steps"]*rra["xff"]) then
+    -- If steps are defined for the native resolution, only proceed if we have enough entries
+    if higher["steps"] == nil or table.getn(data) > (rra["steps"]/higher["steps"]*rra["xff"]) then
       if rra["aggregation"] == "average" then
         sum = 0
         for i, value in ipairs(data) do
-          --sum = sum + tonumber(string.sub(value, 12, -1))
-          --xxx = string.find(value, '-')
-          --sum = sum + tonumber(string.sub(value, xxx+1, -1))
+          --sum = sum + tonumber(string.sub(value, string.find(value, '-')+1, -1))
           sum = sum + tonumber(value)
         end
         value = sum / table.getn(data)     
-        --redis.log(redis.LOG_NOTICE, cjson.encode(data))
-        --redis.log(redis.LOG_NOTICE, sum, value)
+      elseif rra["aggregation"] == "min" then
+        min = 2^52
+        for i, value in ipairs(data) do
+          n = tonumber(value)
+          if n < min then
+            min = n 
+          end
+        end
+        value = min
+      elseif rra["aggregation"] == "max" then
+        max = -2^52
+        for i, value in ipairs(data) do
+          n = tonumber(value)
+          if n > max then
+            max = n
+          end
+        end
+        value = max
       else
         redis.log(redis.LOG_NOTICE, "Not implemented")
       end
     else
       -- We cannot insert any new data, lets bail
-      --redis.log(redis.LOG_NOTICE, timestamp .. "rra stop " .. lower_start)
       return false
     end
 
@@ -81,7 +93,7 @@ if config["rra"] then
     higher = rra
     higher_key = KEYS[1]..'_'..higher["steps"]..'_'..higher["aggregation"]
 
-    -- We may be updateing an old entry, which we want to delete first
+    -- We may be updating an old entry, which we want to delete first
     redis.call("ZREMRANGEBYSCORE", higher_key, lower_start, lower_start)
     
     -- Add the new entry to the bucked
@@ -92,8 +104,8 @@ if config["rra"] then
 
     if count > higher["rows"] then 
       -- We have too many entries in this bucket - remove the oldest
-      pop = redis.call("ZRANGE", higher_key, 0, 0)
-      redis.call("ZREM", higher_key, pop[1])
+      oldest = redis.call("ZRANGE", higher_key, 0, 0)
+      redis.call("ZREM", higher_key, oldest[1])
     end
 
 

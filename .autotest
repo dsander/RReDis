@@ -1,7 +1,7 @@
 # -*- ruby -*-
 
 require 'autotest/restart'
-
+require 'autotest/fsevent'
 # Autotest.add_hook :initialize do |at|
 #   at.extra_files << "../some/external/dependency.rb"
 #
