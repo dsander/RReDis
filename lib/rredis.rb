@@ -5,10 +5,10 @@ class RReDis
   attr_reader :default_config
   
   def initialize
-    @default_config = {:steps=>60, :rows=>1440, :rra=>
-                        [{:steps=>60, :rows=>10080, :aggregation=>"average", :xff=>0.5},
-                         {:steps=>900, :rows=>2976, :aggregation=>"average", :xff=>0.5},
-                         {:steps=>3600, :rows=>8760, :aggregation=>"average", :xff=>0.5}]}
+    @default_config = [{:steps=>60, :rows=>1440},
+                       {:steps=>60, :rows=>10080, :aggregation=>"average", :xff=>0.5},
+                       {:steps=>900, :rows=>2976, :aggregation=>"average", :xff=>0.5},
+                       {:steps=>3600, :rows=>8760, :aggregation=>"average", :xff=>0.5}]
 
     @r = Redis.new
     @r.set 'rrd_default_config', JSON.dump(@default_config)

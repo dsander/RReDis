@@ -1,3 +1,21 @@
+function get_value(value, ts) 
+  n = string.find(value, '_');
+  if n then
+    return tonumber(string.sub(value, n+1, -1))
+  else
+    return tonumber(value)
+  end
+end
+function get_data(data)
+  t = {}
+  for i, d in ipairs(data) do
+    --redis.log(redis.LOG_NOTICE, i, d, get_value(d, i))
+    table.insert(t, get_value(d, i))
+  end
+  --redis.log(redis.LOG_NOTICE, cjson.encode(data))
+  return t
+end
+
 -- Check if there is a config for this metric
 if redis.call("exists",KEYS[1] .. "_config") == 0 then
   -- Create a config based on the default one
@@ -15,20 +33,41 @@ if config["steps"] then
 else
   higher_key = KEYS[1]..'_free'
 end
-redis.log(redis.LOG_NOTICE, "ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES')
-data = redis.call("ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES' )
-if table.getn(data) > 0 then
-  return data
+
+oldest = redis.call("ZRANGE", higher_key, 0, 0, 'WITHSCORES')
+if not oldest then
+  return {}
+end
+
+oldest = tonumber(oldest[2])
+if oldest <= start then
+  --redis.log(redis.LOG_NOTICE, "yeah")
+  --redis.log(redis.LOG_NOTICE, start, stop, oldest, config.steps, config.rows)
+  if oldest+(config.steps*(config.rows-1)) <= stop then
+    data = redis.call("ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES' )
+    return get_data(data)
+  end
 end
 
 if config["rra"] then
   higher = config
+  rra_count = table.getn(config.rra)
   for i, rra in ipairs(config["rra"]) do
     -- Get all entries from the higher precision bucket
     key = KEYS[1]..'_'..rra["steps"]..'_'..rra["aggregation"]
-    data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
-    if table.getn(data) > 0 then
-      return data
+    oldest = redis.call("ZRANGE", key, 0, 0, 'WITHSCORES')
+    if not oldest then
+      return {}
+    end
+
+    oldest = tonumber(oldest[2])
+    if oldest <= start or i == rra_count then
+      --redis.log(redis.LOG_NOTICE, "yeah")
+      --redis.log(redis.LOG_NOTICE, start, stop, oldest, rra.steps, rra.rows)
+      if oldest+(rra.steps*(rra.rows-1)) <= stop then
+        data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
+        return get_data(data)
+      end
     end
   end
 end
