@@ -13,7 +13,7 @@ describe RReDis do
       value = 1
       (10..270).step(10).each_slice(3) do |a|
         a.each do |ts|
-          rrd.store('test', value, ts)
+          rrd.store('test', ts, value)
         end
         value += 1
       end

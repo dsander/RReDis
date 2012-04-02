@@ -26,7 +26,11 @@ class RReDis
     @r.set "rrd_#{metric}_config", JSON.dump(config)
   end
 
-  def store(metric, value, timestamp=nil)
+  def store(metric, timestamp, value)
+    if value.nil?
+      value = timestamp
+      timestamp = Time.now
+    end
     @r.evalsha(@sha_cache[:store], 1, 'rrd_'+metric, value, timestamp.to_f)
   end
 
