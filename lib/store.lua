@@ -10,17 +10,13 @@ config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
 timestamp = tonumber(ARGV[2])
 
 -- If steps are defined for the native resolution, we will round the timestamp 
-if config["steps"] then
-  higher_key = KEYS[1]..'_'..config["steps"]
-  if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
-    timestamp = math.floor(timestamp - (timestamp % config["steps"]))
-  else
-    timestamp = math.floor(timestamp - (timestamp % config["steps"])) + config["steps"]
-  end
+higher_key = KEYS[1]..'_'..config["steps"]
+if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
+  timestamp = math.floor(timestamp - (timestamp % config["steps"]))
 else
-  higher_key = KEYS[1]..'_free'
-  timestamp = math.floor(timestamp + 0.5)
+  timestamp = math.floor(timestamp - (timestamp % config["steps"])) + config["steps"]
 end
+
 
 -- Get the amount of entries in this bucket
 count = redis.call("ZCARD", higher_key)
@@ -74,7 +70,7 @@ if config["rra"] then
     data = redis.call(         "ZRANGEBYSCORE", higher_key, lower_start, lower_start+rra["steps"])
 
     -- If steps are defined for the native resolution, only proceed if we have enough entries
-    if higher["steps"] == nil or table.getn(data) > (rra["steps"]/higher["steps"]*rra["xff"]) then
+    if table.getn(data) > (rra["steps"]/higher["steps"]*rra["xff"]) then
       if rra["aggregation"] == "average" then
         sum = 0
 

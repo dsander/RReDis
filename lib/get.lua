@@ -28,11 +28,7 @@ config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
 start = tonumber(ARGV[1])
 stop = tonumber(ARGV[2])
 
-if config["steps"] then
-  higher_key = KEYS[1]..'_'..config["steps"]
-else
-  higher_key = KEYS[1]..'_free'
-end
+higher_key = KEYS[1]..'_'..config["steps"]
 
 oldest = redis.call("ZRANGE", higher_key, 0, 0, 'WITHSCORES')
 if not oldest then

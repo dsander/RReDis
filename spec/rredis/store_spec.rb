@@ -13,14 +13,6 @@ describe RReDis do
       JSON.parse(r.get('rrd_default_config'), :symbolize_names => true).should == rrd.default_config
     end
 
-    it "should store a data point" do
-      i = 0
-      60.times do |i|
-      #  rrd.store('test', i, Time.now+i)
-      end
-      #r.zcard('rrd_test_1').should == 1
-    end
-
     it "should round the timestamp correctly" do
       rrd.config("timestamp", {:steps => 10, :rows => 3})
       rrd.store('timestamp', 1, 100)
@@ -28,15 +20,6 @@ describe RReDis do
       rrd.store('timestamp', 3, 106.6)
       r.zrange('rrd_timestamp_10', 0, -1).should == ["100_2", "110_3"]
       r.zcard('rrd_timestamp_10').should == 2
-    end
-
-    it "should round the timestamp correctly 2" do
-      rrd.config("timestamp2", {:rows => 3})
-      rrd.store('timestamp2', 1, 100)
-      rrd.store('timestamp2', 2, 104.4)
-      rrd.store('timestamp2', 3, 106.5)
-      r.zrange('rrd_timestamp2_free', 0, -1, :with_scores => true).should == ["100_1", "100", "104_2", "104", "107_3", "107"]
-      r.zcard('rrd_timestamp2_free').should == 3
     end
 
     it "should correctly store three points" do 
@@ -53,15 +36,6 @@ describe RReDis do
       rrd.store('past', 2, 11)
       rrd.store('past', 3, 8)
       r.zcard('rrd_past_1').should == 2
-    end
-
-    it "should not store a point which timestamp is too far in the past with not steps" do
-      rrd.config("past2", {:rows => 3})
-      rrd.store('past2', 1, 10)
-      rrd.store('past2', 2, 11)
-      rrd.store('past2', 3, 12)
-      rrd.store('past2', 4, 8)
-      r.zcard('rrd_past2_free').should == 3
     end
 
     it "should store no more then three points" do 
@@ -103,18 +77,6 @@ describe RReDis do
       r.zcard('rrd_test5_6_average').should == 1
       r.zrange('rrd_test5_6_average', 0, 0).first.should == "6_3.5"
       r.zcard('rrd_test5_3_average').should == 2
-    end
-
-    it "should work without specifying steps" do
-      pending("Might remove support for databases without specified steps")
-      rrd.config("test6", {:rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.1}]})    
-      rrd.store('test6', 1, 60)
-      rrd.store('test6', 2, 61)
-      rrd.store('test6', 3, 62)
-      r.zcard('rrd_test6_free').should == 3
-      r.zcard('rrd_test6_3_average').should == 1
-      rrd.store('test6', 1, 63)
-      r.zcard('rrd_test6_3_average').should == 2
     end
 
     it "should pipeline multiple store commands" do
