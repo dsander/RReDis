@@ -20,15 +20,15 @@ describe RReDis do
     end
 
     it "should work with more then one rra" do 
-      rrd.get("test", 250, 270).should == [9, 250, 9, 260, 9, 270]
+      rrd.get("test", 250, 270).should == [[250, 260, 270], [9, 9, 9]]
     end
 
     it "should stuff" do
-      rrd.get("test", 210, 270).should == [7, 210, 8, 240, 9, 270]
+      rrd.get("test", 210, 270).should == [[195, 225, 255], [7, 8, 9]]
     end
 
     it "stuff" do
-      rrd.get("test", 0, 270).should == [3, 120, 5, 180, 7, 240]
+      rrd.get("test", 0, 270).should == [[90, 150, 210], [3, 5, 7]]
     end
 
   end

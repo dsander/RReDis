@@ -1,4 +1,4 @@
-function get_value(value, ts) 
+function get_value(value) 
   n = string.find(value, '_');
   if n then
     return tonumber(string.sub(value, n+1, -1))
@@ -6,14 +6,19 @@ function get_value(value, ts)
     return tonumber(value)
   end
 end
-function get_data(data)
-  t = {}
+function get_data(data, offset)
+  values = {}
+  timestamps = {}
   for i, d in ipairs(data) do
     --redis.log(redis.LOG_NOTICE, i, d, get_value(d, i))
-    table.insert(t, get_value(d, i))
+    if i % 2 == 0 then
+      table.insert(timestamps, get_value(d)-offset)
+    else
+      table.insert(values, get_value(d))
+    end
   end
   --redis.log(redis.LOG_NOTICE, cjson.encode(data))
-  return t
+  return {timestamps, values}
 end
 
 -- Check if there is a config for this metric
@@ -41,7 +46,7 @@ if oldest <= start then
   --redis.log(redis.LOG_NOTICE, start, stop, oldest, config.steps, config.rows)
   if oldest+(config.steps*(config.rows-1)) <= stop then
     data = redis.call("ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES' )
-    return get_data(data)
+    return get_data(data, 0)
   end
 end
 
@@ -62,7 +67,7 @@ if config["rra"] then
       --redis.log(redis.LOG_NOTICE, start, stop, oldest, rra.steps, rra.rows)
       if oldest+(rra.steps*(rra.rows-1)) <= stop then
         data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
-        return get_data(data)
+        return get_data(data, rra.steps/2)
       end
     end
   end
