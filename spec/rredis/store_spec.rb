@@ -47,6 +47,16 @@ describe RReDis do
       r.zcard('rrd_test3_1').should == 3
       r.zrange('rrd_test3_1', 0, -1).should == ["21_2", "22_3", "23_4"]
     end
+    
+    it "should store floats" do 
+      rrd.config("floats", {:steps => 1, :rows => 3})    
+      rrd.store('floats', 20, 1.1)
+      rrd.store('floats', 21, 2.2)
+      rrd.store('floats', 22, 3.312345678)
+      rrd.store('floats', 23, 4.444455)
+      r.zcard('rrd_floats_1').should == 3
+      r.zrange('rrd_floats_1', 0, -1).should == ["21_2.2", "22_3.312345678", "23_4.444455"]
+    end
 
     it "should generate the averages correctly" do 
       rrd.config("test4", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.0}]})    
@@ -114,7 +124,19 @@ describe RReDis do
       r.zrange('rrd_max_3_max', 0, 0).first.should == "3_7"
       r.zrange('rrd_max_3_max', 1, 1).first.should == "6_5"
       r.zcard('rrd_max_3_max').should == 2
-      
+    end
+
+    it "should find the sum correctly" do 
+      rrd.config("sum", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'sum', :xff => 0.1}]})    
+      rrd.store('sum', 1, 5)
+      rrd.store('sum', 2, 2)
+      rrd.store('sum', 3, 7)
+      r.zcard('rrd_sum_1').should == 3
+      r.zcard('rrd_sum_3_sum').should == 1
+      rrd.store('sum', 4, 5)
+      r.zrange('rrd_sum_3_sum', 0, 0).first.should == "3_14"
+      r.zrange('rrd_sum_3_sum', 1, 1).first.should == "6_5"
+      r.zcard('rrd_sum_3_sum').should == 2
     end
   end
 end

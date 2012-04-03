@@ -1,0 +1,10 @@
+/*
+*= require_self
+*= require vendor/bootstrap
+*= require vendor/bootstrap-responsive
+*/
+body {
+  position: relative;
+  padding-top: 90px;
+  background-color: #aaa;
+}

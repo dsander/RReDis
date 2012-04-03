@@ -78,7 +78,13 @@ if config["rra"] then
           sum = sum + get_value(value)
           --sum = sum + tonumber(value)
         end
-        value = sum / table.getn(data)     
+        value = sum / table.getn(data)
+      elseif rra["aggregation"] == "sum" then
+        value = 0
+
+        for i, v in ipairs(data) do
+          value = value + get_value(v)
+        end
       elseif rra["aggregation"] == "min" then
         min = 2^52
         for i, value in ipairs(data) do

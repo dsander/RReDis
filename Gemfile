@@ -1,5 +1,8 @@
 source :rubygems
 gem 'redis'
+gem 'slim'
+gem 'sprockets'
+gem 'sass'
 
 group :test, :development do 
   gem 'rspec'

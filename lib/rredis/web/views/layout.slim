@@ -1,0 +1,26 @@
+doctype html
+html
+  head
+    link href='#{{root_path}}assets/application.css' media='screen' rel='stylesheet' type='text/css'
+    script type="text/javascript" src="#{{root_path}}assets/application.js"
+    title RReDis
+  body
+    .navbar.navbar-fixed-top
+      .navbar-inner
+        .container
+          a.brand href='#{{root_path}}'
+            | RReDis
+          ul.nav
+            li
+              select id="metrics"
+                - @metrics.each do |metric|
+                  option name="#{metric}"
+                    == metric
+          ul.nav.pull-right
+            li
+            li
+
+    .container
+      == yield
+
+    

@@ -28,8 +28,17 @@ describe RReDis do
     end
 
     it "stuff" do
-      rrd.get("test", 0, 270).should == [[90, 150, 210], [3, 5, 7]]
+      rrd.get("test", 0, 270).should == [[90, 150, 210], [3.5, 5.5, 7.5]]
     end
 
+    
+    it "should get floats" do 
+      rrd.config("floats", {:steps => 1, :rows => 3})    
+      rrd.store('floats', 20, 1.1)
+      rrd.store('floats', 21, 2.2)
+      rrd.store('floats', 22, 3.312345678)
+      r.zcard('rrd_floats_1').should == 3
+      rrd.get("floats", 20, 22).should == [[20, 21, 22], [1.1, 2.2, 3.312345678]]
+    end
   end
 end

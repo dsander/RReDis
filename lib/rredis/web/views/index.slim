@@ -1,0 +1,7 @@
+div id="charts"
+
+javascript: 
+  $(document).ready(function() {
+    rredis = new RReDis();
+    rredis.createGraphs("#{@metrics.first}");
+  });

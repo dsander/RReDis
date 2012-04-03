@@ -1,7 +1,7 @@
 function get_value(value) 
   n = string.find(value, '_');
   if n then
-    return tonumber(string.sub(value, n+1, -1))
+    return string.sub(value, n+1, -1)
   else
     return tonumber(value)
   end
@@ -17,10 +17,10 @@ function get_data(data, offset)
       table.insert(values, get_value(d))
     end
   end
-  --redis.log(redis.LOG_NOTICE, cjson.encode(data))
+  --redis.log(redis.LOG_NOTICE, cjson.encode(values))
   return {timestamps, values}
 end
-
+--redis.log(redis.LOG_NOTICE, "start----------")
 -- Check if there is a config for this metric
 if redis.call("exists",KEYS[1] .. "_config") == 0 then
   -- Create a config based on the default one
@@ -32,6 +32,7 @@ config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
 
 start = tonumber(ARGV[1])
 stop = tonumber(ARGV[2])
+timespan = stop-start
 
 higher_key = KEYS[1]..'_'..config["steps"]
 
@@ -42,9 +43,9 @@ end
 
 oldest = tonumber(oldest[2])
 if oldest <= start then
-  --redis.log(redis.LOG_NOTICE, "yeah")
-  --redis.log(redis.LOG_NOTICE, start, stop, oldest, config.steps, config.rows)
-  if oldest+(config.steps*(config.rows-1)) <= stop then
+  --redis.log(redis.LOG_NOTICE, "considering")
+  --redis.log(redis.LOG_NOTICE, higher_key, start, stop, oldest, config.steps, config.rows , timespan, timespan/config.steps)
+  if timespan <= config.steps*config.rows and timespan/config.steps < 500 then
     data = redis.call("ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES' )
     return get_data(data, 0)
   end
@@ -63,9 +64,9 @@ if config["rra"] then
 
     oldest = tonumber(oldest[2])
     if oldest <= start or i == rra_count then
-      --redis.log(redis.LOG_NOTICE, "yeah")
-      --redis.log(redis.LOG_NOTICE, start, stop, oldest, rra.steps, rra.rows)
-      if oldest+(rra.steps*(rra.rows-1)) <= stop then
+      --redis.log(redis.LOG_NOTICE, "considering")
+      --redis.log(redis.LOG_NOTICE, key, start, stop, oldest, rra.steps, rra.rows, oldest+(rra.steps*(rra.rows-1))-stop)
+      if (timespan <= rra.steps*rra.rows and timespan/config.steps < 500) or i == rra_count then
         data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
         return get_data(data, rra.steps/2)
       end
