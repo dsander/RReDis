@@ -1,3 +1,4 @@
+local config, oldest
 -- Check if there is a config for this metric
 if redis.call("exists",KEYS[1] .. "_config") == 0 then
   -- Create a config based on the default one
@@ -7,10 +8,10 @@ end
 -- Load the config
 config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
 
-timestamp = tonumber(ARGV[2])
+local timestamp = tonumber(ARGV[2])
 
 -- If steps are defined for the native resolution, we will round the timestamp 
-higher_key = KEYS[1]..'_'..config["steps"]
+local higher_key = KEYS[1]..'_'..config["steps"]
 if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
   timestamp = math.floor(timestamp - (timestamp % config["steps"]))
 else
@@ -19,7 +20,7 @@ end
 
 
 -- Get the amount of entries in this bucket
-count = redis.call("ZCARD", higher_key)
+local count = redis.call("ZCARD", higher_key)
 
 -- We need to make sure that to old entries are not added to the bucked
 if count+1 == config["rows"] then
@@ -45,17 +46,18 @@ end
 --redis.log(redis.LOG_NOTICE, cjson.encode(redis.call("ZRANGE", higher_key, 0, -1 )))
 --redis.log(redis.LOG_NOTICE, timestamp, ARGV[1])
 
-get_value = function(value) return tonumber(string.sub(value, string.find(value, '_')+1, -1)) end
+local get_value = function(value) return tonumber(string.sub(value, string.find(value, '_')+1, -1)) end
 
 
 if config["rra"] then
-  higher = config
+  local higher = config
+  local lower_start, higher_ts, value, max, min, n, sum
   --redis.log(redis.LOG_NOTICE, "rra start")
 
   for i, rra in ipairs(config["rra"]) do
     -- Calculate the timestamp for the aggregation
     
-    rest = (timestamp % rra["steps"]) 
+    local rest = (timestamp % rra["steps"]) 
     if rest == 0 then
       lower_start = timestamp - rra["steps"] + higher["steps"]
       higher_ts = timestamp
@@ -67,7 +69,7 @@ if config["rra"] then
     -- Get all entries from the higher precision bucket
     --redis.log(redis.LOG_NOTICE,"ZRANGEBYSCORE", higher_key, lower_start, lower_start+rra["steps"], 'high:'..higher_ts, 'ts:'..timestamp,'rest: '..(timestamp % rra["steps"])  )
     --redis.log(redis.LOG_NOTICE, cjson.encode(data))
-    data = redis.call(         "ZRANGEBYSCORE", higher_key, lower_start, lower_start+rra["steps"])
+    local data = redis.call(         "ZRANGEBYSCORE", higher_key, lower_start, lower_start+rra["steps"])
 
     -- If steps are defined for the native resolution, only proceed if we have enough entries
     if table.getn(data) > (rra["steps"]/higher["steps"]*rra["xff"]) then
