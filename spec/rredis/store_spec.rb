@@ -138,5 +138,21 @@ describe RReDis do
       r.zrange('rrd_sum_3_sum', 1, 1).first.should == "6_5"
       r.zcard('rrd_sum_3_sum').should == 2
     end
+
+    it "should handle multiple aggregation methods correctly" do
+      rrd.config("mult", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.1},
+                                                            {:steps => 3, :rows => 10, :aggregation => 'min', :xff => 0.1}]})
+      rrd.store('mult', 1, 1)
+      rrd.store('mult', 2, 1)
+      rrd.store('mult', 3, 2)
+      r.zcard("rrd_mult_1").should == 3
+      r.zcard("rrd_mult_3_average").should == 1
+      r.zrange('rrd_mult_3_average', 0, 0).first.should == "3_1.3333333333333"
+      r.zcard("rrd_mult_3_min").should == 1
+      r.zrange('rrd_mult_3_min', 0, 0).first.should == "3_1"
+
+
+
+    end
   end
 end

@@ -19,7 +19,7 @@ describe RReDis do
       end
     end
 
-    it "should work with more then one rra" do 
+    it "should return values in the native resolution" do 
       rrd.get("test", 250, 270).should == [[250, 260, 270], [9, 9, 9]]
     end
 
@@ -28,7 +28,7 @@ describe RReDis do
     end
 
     it "stuff" do
-      rrd.get("test", 0, 270).should == [[90, 150, 210], [3.5, 5.5, 7.5]]
+      rrd.get("test", 0, 270).should == [[30, 90, 150, 210], [1.5, 3.5, 5.5, 7.5]]
     end
 
     

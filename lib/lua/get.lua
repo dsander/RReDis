@@ -42,35 +42,42 @@ if not oldest then
 end
 
 local oldest = tonumber(oldest[2])
-if oldest <= start then
+redis.log(redis.LOG_NOTICE, "native", oldest, start, oldest-start)
+--if oldest <= start then
   --redis.log(redis.LOG_NOTICE, "considering")
   --redis.log(redis.LOG_NOTICE, higher_key, start, stop, oldest, config.steps, config.rows , timespan, timespan/config.steps)
   if timespan <= config.steps*config.rows and timespan/config.steps < 500 then
     local data = redis.call("ZRANGEBYSCORE", higher_key, start, stop, 'WITHSCORES' )
     return get_data(data, 0)
   end
-end
+--end
 
 if config["rra"] then
   local higher = config
   local rra_count = table.getn(config.rra)
   local key, oldest
-  for i, rra in ipairs(config["rra"]) do
-    -- Get all entries from the higher precision bucket
-    key = KEYS[1]..'_'..rra["steps"]..'_'..rra["aggregation"]
-    oldest = redis.call("ZRANGE", key, 0, 0, 'WITHSCORES')
-    if not oldest then
-      return {}
-    end
-
-    oldest = tonumber(oldest[2])
-    if oldest <= start or i == rra_count then
-      --redis.log(redis.LOG_NOTICE, "considering")
-      --redis.log(redis.LOG_NOTICE, key, start, stop, oldest, rra.steps, rra.rows, oldest+(rra.steps*(rra.rows-1))-stop)
-      if (timespan <= rra.steps*rra.rows and timespan/config.steps < 500) or i == rra_count then
-        local data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
-        return get_data(data, rra.steps/2)
+  for i, rras in ipairs(config["rra"]) do
+    for j, rra in ipairs(rras) do
+      -- Get all entries from the higher precision bucket
+      key = KEYS[1]..'_'..rra["steps"]..'_'..rra["aggregation"]
+      oldest = redis.call("ZRANGE", key, 0, 0, 'WITHSCORES')
+      redis.log(redis.LOG_NOTICE, cjson.encode(oldest))
+      if oldest == {} then
+        return {}
       end
+
+      oldest = tonumber(oldest[2])
+      --redis.log(redis.LOG_NOTICE, rra["steps"], rra.rows, timespan)
+      --redis.log(redis.LOG_NOTICE, rra["steps"], oldest, i, rra_count, start)
+      --redis.log(redis.LOG_NOTICE, start, stop, oldest, rra.steps, rra.rows , timespan, timespan/rra.steps)
+      --if oldest <= start or i == rra_count then
+        --redis.log(redis.LOG_NOTICE, "considering")
+        --redis.log(redis.LOG_NOTICE, key, start, stop, oldest, rra.steps, rra.rows, oldest+(rra.steps*(rra.rows-1))-stop)
+        if (timespan <= rra.steps*rra.rows and timespan/rra.steps < 500) or i == rra_count then
+          local data = redis.call("ZRANGEBYSCORE", key, start, stop, 'WITHSCORES' )
+          return get_data(data, rra.steps/2)
+        end
+      --end
     end
   end
 end

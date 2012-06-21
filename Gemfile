@@ -1,5 +1,5 @@
 source :rubygems
-gem 'redis'
+gem 'redis', '>=3.0.1'
 gem 'slim'
 gem 'sprockets'
 gem 'sass'
