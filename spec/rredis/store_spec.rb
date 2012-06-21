@@ -59,7 +59,7 @@ describe RReDis do
     end
 
     it "should generate the averages correctly" do 
-      rrd.config("test4", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.0}]})    
+      rrd.config("test4", {:steps => 1, :rows => 3, :aggregations => ['average'], :rra => [{:steps => 3, :rows => 10, :xff => 0.0}]})    
       rrd.store('test4', 1, 1)
       r.zrange('rrd_test4_3_average', 0, 0).first.should == "3_1"
       rrd.store('test4', 2, 2)
@@ -75,8 +75,9 @@ describe RReDis do
     end
 
     it "should work with more then one rra" do 
-      rrd.config("test5", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.1},
-                                                             {:steps => 6, :rows => 10, :aggregation => 'average', :xff => 0.1}]})
+      rrd.config("test5", {:steps => 1, :rows => 3, :aggregations => ['average'], 
+                              :rra => [{:steps => 3, :rows => 10, :xff => 0.1},
+                                       {:steps => 6, :rows => 10, :xff => 0.1}]})
       1.upto(6) do |x|
         rrd.store('test5', x, x)
       end
@@ -91,7 +92,7 @@ describe RReDis do
 
     it "should pipeline multiple store commands" do
       rrd.config("pipeline", {:steps => 1, :rows => 3})
-      rrd.pipeline do |rrd|
+      rrd.pipelined do |rrd|
         rrd.store('pipeline', Time.now,   1)
         rrd.store('pipeline', Time.now+1, 2)
         rrd.store('pipeline', Time.now+2, 3)
@@ -101,7 +102,7 @@ describe RReDis do
     end
 
     it "should find the minima correctly" do 
-      rrd.config("min", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'min', :xff => 0.1}]})    
+      rrd.config("min", {:steps => 1, :rows => 3, :aggregations => ['min'], :rra => [{:steps => 3, :rows => 10, :xff => 0.1}]})    
       rrd.store('min', 1, 5)
       rrd.store('min', 2, 2)
       rrd.store('min', 3, 7)
@@ -114,7 +115,7 @@ describe RReDis do
     end
 
     it "should find the maxima correctly" do 
-      rrd.config("max", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'max', :xff => 0.1}]})    
+      rrd.config("max", {:steps => 1, :rows => 3, :aggregations => ['max'], :rra => [{:steps => 3, :rows => 10, :xff => 0.1}]})    
       rrd.store('max', 1, 5)
       rrd.store('max', 2, 2)
       rrd.store('max', 3, 7)
@@ -127,7 +128,7 @@ describe RReDis do
     end
 
     it "should find the sum correctly" do 
-      rrd.config("sum", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'sum', :xff => 0.1}]})    
+      rrd.config("sum", {:steps => 1, :rows => 3, :aggregations => ['sum'], :rra => [{:steps => 3, :rows => 10, :xff => 0.1}]})    
       rrd.store('sum', 1, 5)
       rrd.store('sum', 2, 2)
       rrd.store('sum', 3, 7)
@@ -140,8 +141,8 @@ describe RReDis do
     end
 
     it "should handle multiple aggregation methods correctly" do
-      rrd.config("mult", {:steps => 1, :rows => 3, :rra => [{:steps => 3, :rows => 10, :aggregation => 'average', :xff => 0.1},
-                                                            {:steps => 3, :rows => 10, :aggregation => 'min', :xff => 0.1}]})
+      rrd.config("mult", {:steps => 1, :rows => 3, :aggregations => ['average', 'max', 'min'], :rra => [{:steps => 3, :rows => 10, :xff => 0.1},
+                                                            {:steps => 3, :rows => 10, :xff => 0.1}]})
       rrd.store('mult', 1, 1)
       rrd.store('mult', 2, 1)
       rrd.store('mult', 3, 2)

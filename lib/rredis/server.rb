@@ -52,7 +52,10 @@ module RReDisServer
     end
 
     get "/get" do
-      data = @rrd.get(params['metric'], Time.now-params['timespan'].to_i, Time.now)
+      data = {}
+      params['aggregations'].split(',').each do |method|
+        data[method] = @rrd.get(params['metric'], Time.now-params['timespan'].to_i, Time.now, method)
+      end
       JSON.dump(data)
     end
   end
