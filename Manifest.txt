@@ -7,7 +7,10 @@ History.txt
 Manifest.txt
 README.md
 Rakefile
+benchmark/default.rb
+benchmark/pipeline.rb
 bin/rredis_server
+config.ru
 lib/lua/get.lua
 lib/lua/store.lua
 lib/rredis.rb
