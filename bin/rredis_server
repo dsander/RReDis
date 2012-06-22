@@ -2,5 +2,6 @@
 
 require 'rredis'
 require 'rredis/server'
+require 'vegas'
 
-run RReDisServer::Web
+Vegas::Runner.new(RReDisServer::Web, 'rredis_server')

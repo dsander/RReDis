@@ -16,12 +16,14 @@ Hoe.plugin :bundler
 Hoe.plugin :gemcutter
 Hoe.plugins.delete :rubyforge
 
-Hoe.spec 'RReDis' do
+Hoe.spec 'rredis' do
   developer('Dominik Sander', 'git@dsander.de')
+  self.description ="RReDis - a round robin database backed by redis" 
+  self.summary = "RReDis - dead simple monitoring and graphing round robin database using redis"
 
   self.readme_file = 'README.md'
   self.history_file = 'CHANGELOG.md'
-  self.extra_deps << ["savon"]
+  self.extra_deps << ["redis"]
 end
 
 task :prerelease => [:clobber, :check_manifest, :test]
@@ -29,3 +31,4 @@ task :prerelease => [:clobber, :check_manifest, :test]
 
 task :default => :spec
 task :test => :spec
+

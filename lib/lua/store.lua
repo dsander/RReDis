@@ -1,17 +1,20 @@
 local config, oldest
+local key = "rrd_" .. KEYS[1]
 -- Check if there is a config for this metric
-if redis.call("exists",KEYS[1] .. "_config") == 0 then
+if redis.call("exists",key .. "_config") == 0 then
   -- Create a config based on the default one
   config = redis.call("get", "rrd_default_config")
-  redis.call("set", KEYS[1] .. "_config", config)
+  redis.call("set", key .. "_config", config)
+  redis.call("sadd", "rrd_metrics_set", KEYS[1])
 end
+
 -- Load the config
-config = cjson.decode(redis.call("get", KEYS[1] .. "_config"))
+config = cjson.decode(redis.call("get", key .. "_config"))
 
 local timestamp = tonumber(ARGV[2])
 
 -- If steps are defined for the native resolution, we will round the timestamp 
-local higher_key = KEYS[1]..'_'..config["steps"]
+local higher_key = key..'_'..config["steps"]
 if (timestamp % config["steps"]) / config["steps"] <= 0.5 then
   timestamp = math.floor(timestamp - (timestamp % config["steps"]))
 else
@@ -131,7 +134,7 @@ if config["rra"] then
 
       -- Update the buckets
       for i, method in ipairs(config["aggregations"]) do
-        rra_key = KEYS[1]..'_'..rra["steps"]..'_'..method
+        rra_key = key..'_'..rra["steps"]..'_'..method
         -- We may be updating an old entry, which we want to delete first
         redis.call("ZREMRANGEBYSCORE", rra_key, higher_ts, higher_ts)
         -- Get the amount of entries in this bucket
@@ -159,7 +162,7 @@ if config["rra"] then
         
       -- Set the higher precision bucket to the current rra
       higher = last_rra
-      higher_key = KEYS[1]..'_'..higher["steps"]
+      higher_key = key..'_'..higher["steps"]
     end
   end
 end

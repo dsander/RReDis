@@ -3,6 +3,7 @@ gem 'redis', '>=3.0.1'
 gem 'slim'
 gem 'sprockets'
 gem 'sass'
+gem 'vegas'
 
 group :test, :development do 
   gem 'rspec'
